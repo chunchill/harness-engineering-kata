@@ -24,6 +24,8 @@ export function TaskBoard() {
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newPriority, setNewPriority] = useState<TaskPriority | ''>('')
+  const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null)
+  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -64,12 +66,6 @@ export function TaskBoard() {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
-  const moveStatus = (task: Task, status: TaskStatus) => {
-    api.updateTask(task.id, { status })
-      .then(load)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-  }
-
   const remove = (id: number) => {
     api.deleteTask(id).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
@@ -80,6 +76,40 @@ export function TaskBoard() {
   }
 
   const byStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status)
+
+  const handleCardDragStart = (task: Task, e: React.DragEvent) => {
+    setDraggedTaskId(task.id)
+    e.dataTransfer.setData('taskId', String(task.id))
+    e.dataTransfer.setData('taskStatus', task.status)
+    e.dataTransfer.effectAllowed = 'move'
+    const card = (e.target as HTMLElement).closest('.task-card')
+    if (card) e.dataTransfer.setDragImage(card as HTMLElement, 0, 0)
+  }
+
+  const handleCardDragEnd = () => {
+    setDraggedTaskId(null)
+    setDragOverStatus(null)
+  }
+
+  const handleColumnDragOver = (status: TaskStatus, e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverStatus(status)
+  }
+
+  const handleColumnDragLeave = () => {
+    setDragOverStatus(null)
+  }
+
+  const handleColumnDrop = (targetStatus: TaskStatus, e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverStatus(null)
+    setDraggedTaskId(null)
+    const taskId = e.dataTransfer.getData('taskId')
+    const sourceStatus = e.dataTransfer.getData('taskStatus') as TaskStatus
+    if (!taskId || sourceStatus === targetStatus) return
+    api.updateTask(Number(taskId), { status: targetStatus }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+  }
 
   if (loading) return <div className="board-loading">Loading…</div>
   if (error) return <div className="board-error">Error: {error}</div>
@@ -119,12 +149,31 @@ export function TaskBoard() {
       </header>
       <div className="board-columns">
         {COLUMNS.map(({ status, label }) => (
-          <div key={status} className="column">
+          <div
+            key={status}
+            className={`column ${dragOverStatus === status ? 'drop-target' : ''}`}
+            onDragOver={(e) => handleColumnDragOver(status, e)}
+            onDragLeave={handleColumnDragLeave}
+            onDrop={(e) => handleColumnDrop(status, e)}
+          >
             <h2 className="column-title">{label}</h2>
             <div className="column-tasks">
               {byStatus(status).map((task) => (
-                <div key={task.id} className="task-card">
+                <div
+                  key={task.id}
+                  className={`task-card ${draggedTaskId === task.id ? 'dragging' : ''}`}
+                >
                   <div className="task-card-header">
+                    <span
+                      className="task-drag-handle"
+                      draggable
+                      onDragStart={(e) => handleCardDragStart(task, e)}
+                      onDragEnd={handleCardDragEnd}
+                      title="Drag to move"
+                      aria-label="Drag to move"
+                    >
+                      ⋮⋮
+                    </span>
                     <span className={`task-priority-badge task-priority-${normalizePriority(task.priority).toLowerCase()}`}>
                       {normalizePriority(task.priority)}
                     </span>
@@ -145,18 +194,19 @@ export function TaskBoard() {
                   <div className="task-title">{task.title}</div>
                   {task.description && <div className="task-desc">{task.description}</div>}
                   <div className="task-actions">
-                    {COLUMNS.filter((c) => c.status !== task.status).map((c) => (
-                      <button
-                        key={c.status}
-                        type="button"
-                        className="btn-move"
-                        onClick={() => moveStatus(task, c.status)}
-                      >
-                        → {c.label}
-                      </button>
-                    ))}
-                    <button type="button" className="btn-delete" onClick={() => remove(task.id)}>
-                      Delete
+                    <button
+                      type="button"
+                      className="btn-delete btn-delete-icon"
+                      onClick={() => remove(task.id)}
+                      title="Delete"
+                      aria-label="Delete task"
+                    >
+                      <svg className="icon-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
                     </button>
                   </div>
                 </div>

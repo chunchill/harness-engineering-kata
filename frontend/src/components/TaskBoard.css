@@ -118,6 +118,17 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-card.dragging {
+  opacity: 0.6;
+}
+
+.column.drop-target {
+  background: #e7f1ff;
+  border: 2px dashed #0d6efd;
 }
 
 .task-card-header {
@@ -126,6 +137,19 @@
   justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 0.35rem;
+}
+
+.task-drag-handle {
+  cursor: grab;
+  color: #999;
+  font-size: 0.9rem;
+  padding: 0.15rem 0.25rem;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.task-drag-handle:active {
+  cursor: grabbing;
 }
 
 .task-priority-badge {
@@ -176,40 +200,33 @@
 }
 
 .task-actions {
+  margin-top: auto;
   display: flex;
-  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.35rem;
 }
 
-.btn-move,
 .btn-delete {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
+  padding: 0.25rem;
   border-radius: 4px;
   cursor: pointer;
-  border: 1px solid #ccc;
-  white-space: nowrap;
-}
-
-.btn-move {
-  color: #333;
-  background: #e9ecef;
-  border-color: #adb5bd;
-}
-
-.btn-move:hover {
-  background: #dee2e6;
-}
-
-.btn-delete {
-  color: #c00;
-  background: #fff;
-  border-color: #fcc;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-delete:hover {
+  color: #c00;
   background: #ffe6e6;
+  border-color: #fcc;
+}
+
+.btn-delete .icon-delete {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .board-loading,
