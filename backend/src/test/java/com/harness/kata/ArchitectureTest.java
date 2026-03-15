@@ -26,15 +26,17 @@ class ArchitectureTest {
     void layeredArchitectureIsRespected() {
         ArchRule rule = layeredArchitecture()
                 .consideringAllDependencies()
+                .optionalLayer("Bootstrap").definedBy("com.harness.kata")
                 .layer("Types").definedBy("..types..")
                 .layer("Config").definedBy("..config..")
                 .layer("Repo").definedBy("..repo..")
                 .layer("Service").definedBy("..service..")
                 .layer("Runtime").definedBy("..runtime..")
+                .whereLayer("Bootstrap").mayNotBeAccessedByAnyLayer()
                 .whereLayer("Config").mayOnlyBeAccessedByLayers("Repo", "Service", "Runtime")
                 .whereLayer("Repo").mayOnlyBeAccessedByLayers("Service")
                 .whereLayer("Service").mayOnlyBeAccessedByLayers("Runtime")
-                .whereLayer("Runtime").mayOnlyBeAccessedByLayers();
+                .whereLayer("Runtime").mayNotBeAccessedByAnyLayer();
         rule.check(importedClasses);
     }
 
