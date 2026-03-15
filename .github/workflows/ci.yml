@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "gradle"
+
+      - name: Run backend tests
+        run: |
+          for i in 1 2 3; do
+            (cd backend && ./gradlew test --no-daemon) && break
+            [ $i -eq 3 ] && exit 1
+            echo "Retry $i/3 in 10s..."
+            sleep 10
+          done
+
+      - name: Build backend
+        run: cd backend && ./gradlew build -x test --no-daemon
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Lint frontend
+        run: cd frontend && npm run lint
+
+      - name: Build frontend
+        run: |
+          for i in 1 2 3; do
+            (cd frontend && npm run build) && break
+            [ $i -eq 3 ] && exit 1
+            echo "Retry $i/3 in 10s..."
+            sleep 10
+          done
+
+  doc-lint:
+    name: Doc structure check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check docs exist
+        run: |
+          test -f docs/PROJECT-PURPOSE.md
+          test -f docs/IMPLEMENTATION-GUIDE.md
+          test -f docs/ARCHITECTURE.md
+          test -f AGENTS.md
+          test -f Harness.md
+          test -f RULES.md
+          echo "Required docs present"

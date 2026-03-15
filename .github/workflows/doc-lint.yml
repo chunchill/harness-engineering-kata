@@ -1,0 +1,39 @@
+name: Doc Lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "AGENTS.md"
+      - "Harness.md"
+      - "RULES.md"
+      - "openspec/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "AGENTS.md"
+      - "Harness.md"
+      - "RULES.md"
+      - "openspec/**"
+
+jobs:
+  doc-structure:
+    name: Required docs present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required docs exist
+        run: |
+          test -f docs/PROJECT-PURPOSE.md
+          test -f docs/IMPLEMENTATION-GUIDE.md
+          test -f docs/ARCHITECTURE.md
+          test -f AGENTS.md
+          test -f Harness.md
+          test -f RULES.md
+          test -d openspec
+          test -d openspec/specs
+          test -d openspec/changes
+          echo "Required docs and openspec structure present"

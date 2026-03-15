@@ -1,0 +1,125 @@
+.task-board {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.board-header {
+  margin-bottom: 1.5rem;
+}
+
+.board-header h1 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.create-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.input-title,
+.input-desc {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 160px;
+}
+
+.input-desc {
+  flex: 1;
+  min-width: 200px;
+}
+
+.btn-create {
+  padding: 0.5rem 1rem;
+  background: #0d6efd;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-create:hover {
+  background: #0b5ed7;
+}
+
+.board-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.column {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 200px;
+}
+
+.column-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.column-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.task-card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.task-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.task-desc {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.btn-move,
+.btn-delete {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+.btn-move:hover,
+.btn-delete:hover {
+  background: #eee;
+}
+
+.btn-delete {
+  color: #c00;
+  border-color: #fcc;
+}
+
+.board-loading,
+.board-error {
+  padding: 2rem;
+  text-align: center;
+}
+
+.board-error {
+  color: #c00;
+}

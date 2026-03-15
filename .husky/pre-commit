@@ -1,0 +1,11 @@
+#!/bin/sh
+# Pre-commit: run backend tests and frontend lint.
+# Skip if backend gradlew or frontend node_modules missing (e.g. fresh clone).
+[ -f "$(dirname "$0")/_/husky.sh" ] && . "$(dirname "$0")/_/husky.sh"
+
+if [ -d backend ] && [ -x backend/gradlew ]; then
+  (cd backend && ./gradlew test --no-daemon -q) || exit 1
+fi
+if [ -d frontend ] && [ -d frontend/node_modules ]; then
+  (cd frontend && npm run lint) || exit 1
+fi
