@@ -25,6 +25,7 @@ class ArchitectureTest {
     @Test
     void layeredArchitectureIsRespected() {
         ArchRule rule = layeredArchitecture()
+                .consideringAllDependencies()
                 .layer("Types").definedBy("..types..")
                 .layer("Config").definedBy("..config..")
                 .layer("Repo").definedBy("..repo..")
