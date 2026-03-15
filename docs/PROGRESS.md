@@ -44,7 +44,7 @@
 
 ## Phase 3：迭代完善 + Bug 修复
 
-- [ ] Phase 3.1：功能增强（优先级已完成；卡片拖拽已实现，待 archive 后勾选）
+- [x] Phase 3.1：功能增强（优先级、卡片拖拽已完成并已 archive）
 - [ ] Phase 3.2：故意留 Bug + 用 Harness 修（补测试/规则，再让 Agent 修）
 - [ ] Phase 3.3：可选 Vibe 小实验
 
