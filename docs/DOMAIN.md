@@ -16,6 +16,7 @@
 - **标题** (title)：必填。
 - **描述** (description)：可选。
 - **状态** (status)：TODO | IN_PROGRESS | DONE。
+- **优先级** (priority)：HIGH | MEDIUM | LOW；可选，创建时未传则默认 MEDIUM。
 - **创建/更新时间**：createdAt、updatedAt，由系统维护。
 
-创建时默认状态为 TODO；客户端通过 PATCH 更新状态以在列间移动任务。
+创建时默认状态为 TODO；客户端通过 PATCH 更新状态以在列间移动任务，亦可更新 priority。

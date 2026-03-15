@@ -4,12 +4,14 @@ import com.harness.kata.repo.TaskEntity;
 import com.harness.kata.repo.TaskRepository;
 import com.harness.kata.types.TaskCreateRequest;
 import com.harness.kata.types.TaskDto;
+import com.harness.kata.types.TaskPriority;
 import com.harness.kata.types.TaskStatus;
 import com.harness.kata.types.TaskUpdateRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +39,7 @@ public class TaskService {
         entity.setTitle(request.title().trim());
         entity.setDescription(request.description() != null ? request.description().trim() : null);
         entity.setStatus(TaskStatus.TODO);
+        entity.setPriority(request.priority() != null ? request.priority() : TaskPriority.MEDIUM);
         entity = taskRepository.save(entity);
         return toDto(entity);
     }
@@ -53,6 +56,9 @@ public class TaskService {
         }
         if (request.status() != null) {
             entity.setStatus(request.status());
+        }
+        if (request.priority() != null) {
+            entity.setPriority(request.priority());
         }
         entity = taskRepository.save(entity);
         return toDto(entity);
@@ -72,6 +78,7 @@ public class TaskService {
                 e.getTitle(),
                 e.getDescription(),
                 e.getStatus(),
+                Objects.requireNonNullElse(e.getPriority(), TaskPriority.MEDIUM),
                 e.getCreatedAt(),
                 e.getUpdatedAt()
         );

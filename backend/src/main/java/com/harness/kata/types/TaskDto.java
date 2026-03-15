@@ -7,6 +7,7 @@ public record TaskDto(
     String title,
     String description,
     TaskStatus status,
+    TaskPriority priority,
     Instant createdAt,
     Instant updatedAt
 ) {}

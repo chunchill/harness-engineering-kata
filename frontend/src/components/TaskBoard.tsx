@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Task, TaskStatus } from '../api/types'
+import type { Task, TaskPriority, TaskStatus } from '../api/types'
 import * as api from '../api/client'
 import './TaskBoard.css'
 
@@ -9,12 +9,21 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: 'DONE', label: 'Done' },
 ]
 
+const PRIORITIES: TaskPriority[] = ['HIGH', 'MEDIUM', 'LOW']
+
+const DEFAULT_PRIORITY: TaskPriority = 'MEDIUM'
+
+function normalizePriority(p: TaskPriority | null | undefined): TaskPriority {
+  return p && PRIORITIES.includes(p) ? p : DEFAULT_PRIORITY
+}
+
 export function TaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true) // true until first fetch completes
   const [error, setError] = useState<string | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
+  const [newPriority, setNewPriority] = useState<TaskPriority | ''>('')
 
   const load = () => {
     setLoading(true)
@@ -38,10 +47,18 @@ export function TaskBoard() {
     e.preventDefault()
     const title = newTitle.trim()
     if (!title) return
-    api.createTask({ title, description: newDesc.trim() || null })
+    const form = e.currentTarget
+    const prioritySelect = form.querySelector('.input-priority') as HTMLSelectElement | null
+    const priorityValue = prioritySelect?.value
+    const priority: TaskPriority =
+      priorityValue && PRIORITIES.includes(priorityValue as TaskPriority)
+        ? (priorityValue as TaskPriority)
+        : DEFAULT_PRIORITY
+    api.createTask({ title, description: newDesc.trim() || null, priority })
       .then(() => {
         setNewTitle('')
         setNewDesc('')
+        setNewPriority('')
         load()
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
@@ -55,6 +72,11 @@ export function TaskBoard() {
 
   const remove = (id: number) => {
     api.deleteTask(id).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+  }
+
+  const setPriority = (task: Task, priority: TaskPriority) => {
+    const value = PRIORITIES.includes(priority) ? priority : DEFAULT_PRIORITY
+    api.updateTask(task.id, { priority: value }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
   const byStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status)
@@ -81,6 +103,17 @@ export function TaskBoard() {
             onChange={(e) => setNewDesc(e.target.value)}
             className="input-desc"
           />
+          <select
+            value={newPriority}
+            onChange={(e) => setNewPriority((e.target.value || '') as TaskPriority | '')}
+            className="input-priority"
+            title="Priority"
+          >
+            <option value="">Priority (default: Medium)</option>
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
           <button type="submit" className="btn-create">Add task</button>
         </form>
       </header>
@@ -91,6 +124,24 @@ export function TaskBoard() {
             <div className="column-tasks">
               {byStatus(status).map((task) => (
                 <div key={task.id} className="task-card">
+                  <div className="task-card-header">
+                    <span className={`task-priority-badge task-priority-${normalizePriority(task.priority).toLowerCase()}`}>
+                      {normalizePriority(task.priority)}
+                    </span>
+                    <select
+                      value={normalizePriority(task.priority)}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setPriority(task, (PRIORITIES.includes(v as TaskPriority) ? v : DEFAULT_PRIORITY) as TaskPriority)
+                      }}
+                      className="task-priority-select"
+                      title="Priority (default: Medium)"
+                    >
+                      {PRIORITIES.map((p) => (
+                        <option key={p} value={p}>{p === DEFAULT_PRIORITY ? `${p} (default)` : p}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="task-title">{task.title}</div>
                   {task.description && <div className="task-desc">{task.description}</div>}
                   <div className="task-actions">

@@ -1,5 +1,6 @@
 package com.harness.kata.repo;
 
+import com.harness.kata.types.TaskPriority;
 import com.harness.kata.types.TaskStatus;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -21,6 +22,10 @@ public class TaskEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TaskStatus status = TaskStatus.TODO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TaskPriority priority = TaskPriority.MEDIUM;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -48,6 +53,8 @@ public class TaskEntity {
     public void setDescription(String description) { this.description = description; }
     public TaskStatus getStatus() { return status; }
     public void setStatus(TaskStatus status) { this.status = status; }
+    public TaskPriority getPriority() { return priority; }
+    public void setPriority(TaskPriority priority) { this.priority = priority; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
