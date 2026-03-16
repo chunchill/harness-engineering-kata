@@ -12,6 +12,15 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 const PRIORITIES: TaskPriority[] = ['HIGH', 'MEDIUM', 'LOW']
 
 const DEFAULT_PRIORITY: TaskPriority = 'MEDIUM'
+const THEME_KEY = 'task-board-theme'
+
+type Theme = 'light' | 'dark'
+
+function getInitialTheme(): Theme {
+  const stored = localStorage.getItem(THEME_KEY) as Theme | null
+  if (stored === 'light' || stored === 'dark') return stored
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
 
 function normalizePriority(p: TaskPriority | null | undefined): TaskPriority {
   return p && PRIORITIES.includes(p) ? p : DEFAULT_PRIORITY
@@ -26,6 +35,14 @@ export function TaskBoard() {
   const [newPriority, setNewPriority] = useState<TaskPriority | ''>('')
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null)
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
 
   const load = () => {
     setLoading(true)
@@ -117,7 +134,18 @@ export function TaskBoard() {
   return (
     <div className="task-board">
       <header className="board-header">
-        <h1>Task Board</h1>
+        <div className="board-header-row">
+          <h1>Task Board</h1>
+          <button
+            type="button"
+            className="btn-theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+        </div>
         <form onSubmit={handleCreate} className="create-form">
           <input
             type="text"
@@ -163,7 +191,7 @@ export function TaskBoard() {
                   key={task.id}
                   className={`task-card ${draggedTaskId === task.id ? 'dragging' : ''}`}
                 >
-                  <div className="task-card-header">
+                  <div className="task-card-top">
                     <span
                       className="task-drag-handle"
                       draggable
@@ -174,6 +202,10 @@ export function TaskBoard() {
                     >
                       ⋮⋮
                     </span>
+                    <div className="task-title">{task.title}</div>
+                  </div>
+                  {task.description && <div className="task-desc">{task.description}</div>}
+                  <div className="task-card-footer">
                     <span className={`task-priority-badge task-priority-${normalizePriority(task.priority).toLowerCase()}`}>
                       {normalizePriority(task.priority)}
                     </span>
@@ -190,10 +222,6 @@ export function TaskBoard() {
                         <option key={p} value={p}>{p === DEFAULT_PRIORITY ? `${p} (default)` : p}</option>
                       ))}
                     </select>
-                  </div>
-                  <div className="task-title">{task.title}</div>
-                  {task.description && <div className="task-desc">{task.description}</div>}
-                  <div className="task-actions">
                     <button
                       type="button"
                       className="btn-delete btn-delete-icon"
