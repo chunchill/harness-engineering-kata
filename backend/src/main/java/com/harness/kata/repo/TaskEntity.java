@@ -4,6 +4,7 @@ import com.harness.kata.types.TaskPriority;
 import com.harness.kata.types.TaskStatus;
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "tasks")
@@ -26,6 +27,9 @@ public class TaskEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TaskPriority priority = TaskPriority.MEDIUM;
+
+    @Column
+    private LocalDate dueDate;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -55,6 +59,8 @@ public class TaskEntity {
     public void setStatus(TaskStatus status) { this.status = status; }
     public TaskPriority getPriority() { return priority; }
     public void setPriority(TaskPriority priority) { this.priority = priority; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

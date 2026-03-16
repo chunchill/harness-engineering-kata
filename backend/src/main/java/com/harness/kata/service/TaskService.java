@@ -10,6 +10,9 @@ import com.harness.kata.types.TaskUpdateRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -40,6 +43,7 @@ public class TaskService {
         entity.setDescription(request.description() != null ? request.description().trim() : null);
         entity.setStatus(TaskStatus.TODO);
         entity.setPriority(request.priority() != null ? request.priority() : TaskPriority.MEDIUM);
+        entity.setDueDate(parseDueDate(request.dueDate()));
         entity = taskRepository.save(entity);
         return toDto(entity);
     }
@@ -60,6 +64,11 @@ public class TaskService {
         if (request.priority() != null) {
             entity.setPriority(request.priority());
         }
+        if (Boolean.TRUE.equals(request.clearDueDate())) {
+            entity.setDueDate(null);
+        } else if (request.dueDate() != null && !request.dueDate().isBlank()) {
+            entity.setDueDate(parseDueDate(request.dueDate()));
+        }
         entity = taskRepository.save(entity);
         return toDto(entity);
     }
@@ -79,8 +88,18 @@ public class TaskService {
                 e.getDescription(),
                 e.getStatus(),
                 Objects.requireNonNullElse(e.getPriority(), TaskPriority.MEDIUM),
+                e.getDueDate() != null ? e.getDueDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : null,
                 e.getCreatedAt(),
                 e.getUpdatedAt()
         );
+    }
+
+    private LocalDate parseDueDate(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid dueDate format, expected YYYY-MM-DD: " + s);
+        }
     }
 }

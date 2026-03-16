@@ -33,6 +33,7 @@ export function TaskBoard() {
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newPriority, setNewPriority] = useState<TaskPriority | ''>('')
+  const [newDueDate, setNewDueDate] = useState('')
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
@@ -73,11 +74,13 @@ export function TaskBoard() {
       priorityValue && PRIORITIES.includes(priorityValue as TaskPriority)
         ? (priorityValue as TaskPriority)
         : DEFAULT_PRIORITY
-    api.createTask({ title, description: newDesc.trim() || null, priority })
+    const dueDate = newDueDate.trim() || null
+    api.createTask({ title, description: newDesc.trim() || null, priority, dueDate })
       .then(() => {
         setNewTitle('')
         setNewDesc('')
         setNewPriority('')
+        setNewDueDate('')
         load()
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
@@ -90,6 +93,14 @@ export function TaskBoard() {
   const setPriority = (task: Task, priority: TaskPriority) => {
     const value = PRIORITIES.includes(priority) ? priority : DEFAULT_PRIORITY
     api.updateTask(task.id, { priority: value }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+  }
+
+  const setDueDate = (task: Task, dueDate: string | null) => {
+    if (dueDate) {
+      api.updateTask(task.id, { dueDate }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    } else {
+      api.updateTask(task.id, { clearDueDate: true }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    }
   }
 
   const byStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status)
@@ -172,6 +183,14 @@ export function TaskBoard() {
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
+          <input
+            type="date"
+            value={newDueDate}
+            onChange={(e) => setNewDueDate(e.target.value)}
+            className="input-due-date"
+            title="Due date (optional)"
+            aria-label="Due date"
+          />
           <button type="submit" className="btn-create">Add task</button>
         </form>
       </header>
@@ -209,6 +228,14 @@ export function TaskBoard() {
                     <span className={`task-priority-badge task-priority-${normalizePriority(task.priority).toLowerCase()}`}>
                       {normalizePriority(task.priority)}
                     </span>
+                    <input
+                      type="date"
+                      value={task.dueDate ?? ''}
+                      onChange={(e) => setDueDate(task, e.target.value || null)}
+                      className="task-due-date-input"
+                      title="Due date"
+                      aria-label="Due date"
+                    />
                     <select
                       value={normalizePriority(task.priority)}
                       onChange={(e) => {

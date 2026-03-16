@@ -8,6 +8,7 @@ export interface Task {
   description: string | null
   status: TaskStatus
   priority: TaskPriority
+  dueDate: string | null
   createdAt: string
   updatedAt: string
 }
@@ -16,6 +17,7 @@ export interface TaskCreateRequest {
   title: string
   description?: string | null
   priority?: TaskPriority | null
+  dueDate?: string | null
 }
 
 export interface TaskUpdateRequest {
@@ -23,4 +25,6 @@ export interface TaskUpdateRequest {
   description?: string | null
   status?: TaskStatus
   priority?: TaskPriority | null
+  dueDate?: string | null
+  clearDueDate?: boolean
 }
