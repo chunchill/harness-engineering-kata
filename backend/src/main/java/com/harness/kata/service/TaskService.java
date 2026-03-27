@@ -52,22 +52,22 @@ public class TaskService {
     public TaskDto update(Long id, TaskUpdateRequest request) {
         TaskEntity entity = taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("task not found: " + id));
-        if (request.title() != null && !request.title().isBlank()) {
-            entity.setTitle(request.title().trim());
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            entity.setTitle(request.getTitle().trim());
         }
-        if (request.description() != null) {
-            entity.setDescription(request.description().trim());
+        if (request.getDescription() != null) {
+            entity.setDescription(request.getDescription().trim());
         }
-        if (request.status() != null) {
-            entity.setStatus(request.status());
+        if (request.getStatus() != null) {
+            entity.setStatus(request.getStatus());
         }
-        if (request.priority() != null) {
-            entity.setPriority(request.priority());
+        if (request.getPriority() != null) {
+            entity.setPriority(request.getPriority());
         }
-        if (Boolean.TRUE.equals(request.clearDueDate())) {
+        if (Boolean.TRUE.equals(request.getClearDueDate())) {
             entity.setDueDate(null);
-        } else if (request.dueDate() != null && !request.dueDate().isBlank()) {
-            entity.setDueDate(parseDueDate(request.dueDate()));
+        } else if (request.getDueDate() != null && !request.getDueDate().isBlank()) {
+            entity.setDueDate(parseDueDate(request.getDueDate()));
         }
         entity = taskRepository.save(entity);
         return toDto(entity);

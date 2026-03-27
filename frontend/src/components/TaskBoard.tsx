@@ -1,13 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Task, TaskPriority, TaskStatus } from '../api/types'
 import * as api from '../api/client'
+import { useI18n } from '../i18n/useI18n'
+import type { MessageKey } from '../i18n/messages'
 import './TaskBoard.css'
-
-const COLUMNS: { status: TaskStatus; label: string }[] = [
-  { status: 'TODO', label: 'Todo' },
-  { status: 'IN_PROGRESS', label: 'In Progress' },
-  { status: 'DONE', label: 'Done' },
-]
 
 const PRIORITIES: TaskPriority[] = ['HIGH', 'MEDIUM', 'LOW']
 
@@ -27,6 +23,22 @@ function normalizePriority(p: TaskPriority | null | undefined): TaskPriority {
 }
 
 export function TaskBoard() {
+  const { locale, setLocale, t } = useI18n()
+
+  const columns = useMemo(
+    (): { status: TaskStatus; label: string }[] => [
+      { status: 'TODO', label: t('column.todo') },
+      { status: 'IN_PROGRESS', label: t('column.inProgress') },
+      { status: 'DONE', label: t('column.done') },
+    ],
+    [t],
+  )
+
+  const priorityLabel = useCallback(
+    (p: TaskPriority) => t(`priority.${p.toLowerCase()}` as MessageKey),
+    [t],
+  )
+
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true) // true until first fetch completes
   const [error, setError] = useState<string | null>(null)
@@ -43,15 +55,17 @@ export function TaskBoard() {
     localStorage.setItem(THEME_KEY, theme)
   }, [theme])
 
-  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
+  const toggleTheme = () => setTheme((th) => (th === 'light' ? 'dark' : 'light'))
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
+  const toggleLocale = () => setLocale(locale === 'en' ? 'zh' : 'en')
+
+  const reloadTasks = () => {
     api.listTasks()
-      .then(setTasks)
+      .then((data) => {
+        setTasks(data)
+        setError(null)
+      })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-      .finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -81,25 +95,25 @@ export function TaskBoard() {
         setNewDesc('')
         setNewPriority('')
         setNewDueDate('')
-        load()
+        reloadTasks()
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
   const remove = (id: number) => {
-    api.deleteTask(id).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    api.deleteTask(id).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
   const setPriority = (task: Task, priority: TaskPriority) => {
     const value = PRIORITIES.includes(priority) ? priority : DEFAULT_PRIORITY
-    api.updateTask(task.id, { priority: value }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    api.updateTask(task.id, { priority: value }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
   const setDueDate = (task: Task, dueDate: string | null) => {
     if (dueDate) {
-      api.updateTask(task.id, { dueDate }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      api.updateTask(task.id, { dueDate }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
     } else {
-      api.updateTask(task.id, { clearDueDate: true }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      api.updateTask(task.id, { clearDueDate: true }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
     }
   }
 
@@ -136,38 +150,62 @@ export function TaskBoard() {
     const taskId = e.dataTransfer.getData('taskId')
     const sourceStatus = e.dataTransfer.getData('taskStatus') as TaskStatus
     if (!taskId || sourceStatus === targetStatus) return
-    api.updateTask(Number(taskId), { status: targetStatus }).then(load).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    api.updateTask(Number(taskId), { status: targetStatus }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
-  if (loading) return <div className="board-loading">Loading…</div>
-  if (error) return <div className="board-error">Error: {error}</div>
+  if (loading) return <div className="board-loading">{t('board.loading')}</div>
+  if (error) return <div className="board-error">{t('board.errorPrefix')}{error}</div>
 
   return (
     <div className="task-board">
       <header className="board-header">
         <div className="board-header-row">
-          <h1>Task Board</h1>
-          <button
-            type="button"
-            className="btn-theme-toggle"
-            onClick={toggleTheme}
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
+          <h1>{t('board.title')}</h1>
+          <div className="board-header-actions">
+            <button
+              type="button"
+              className="btn-theme-toggle"
+              onClick={toggleLocale}
+              title={locale === 'en' ? t('locale.switchToZh') : t('locale.switchToEn')}
+              aria-label={locale === 'en' ? t('locale.switchToZh') : t('locale.switchToEn')}
+            >
+              <svg
+                className="header-action-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20" />
+                <path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="btn-theme-toggle"
+              onClick={toggleTheme}
+              title={theme === 'light' ? t('theme.switchToDark') : t('theme.switchToLight')}
+              aria-label={theme === 'light' ? t('theme.switchToDark') : t('theme.switchToLight')}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+          </div>
         </div>
         <form onSubmit={handleCreate} className="create-form">
           <input
             type="text"
-            placeholder="Task title"
+            placeholder={t('form.titlePlaceholder')}
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             className="input-title"
           />
           <input
             type="text"
-            placeholder="Description (optional)"
+            placeholder={t('form.descPlaceholder')}
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
             className="input-desc"
@@ -176,26 +214,29 @@ export function TaskBoard() {
             value={newPriority}
             onChange={(e) => setNewPriority((e.target.value || '') as TaskPriority | '')}
             className="input-priority"
-            title="Priority"
+            title={t('form.priorityTitle')}
           >
-            <option value="">Priority (default: Medium)</option>
+            <option value="">{t('form.priorityPlaceholder')}</option>
             {PRIORITIES.map((p) => (
-              <option key={p} value={p}>{p}</option>
+              <option key={p} value={p}>{priorityLabel(p)}</option>
             ))}
           </select>
-          <input
-            type="date"
-            value={newDueDate}
-            onChange={(e) => setNewDueDate(e.target.value)}
-            className="input-due-date"
-            title="Due date (optional)"
-            aria-label="Due date"
-          />
-          <button type="submit" className="btn-create">Add task</button>
+          <label className="create-due-field">
+            <span className="create-due-label">{t('form.dueLabel')}</span>
+            <input
+              type="date"
+              value={newDueDate}
+              onChange={(e) => setNewDueDate(e.target.value)}
+              className="input-due-date"
+              title={t('form.dueTitle')}
+              aria-label={t('form.dueAria')}
+            />
+          </label>
+          <button type="submit" className="btn-create">{t('form.addTask')}</button>
         </form>
       </header>
       <div className="board-columns">
-        {COLUMNS.map(({ status, label }) => (
+        {columns.map(({ status, label }) => (
           <div
             key={status}
             className={`column ${dragOverStatus === status ? 'drop-target' : ''}`}
@@ -216,45 +257,51 @@ export function TaskBoard() {
                       draggable
                       onDragStart={(e) => handleCardDragStart(task, e)}
                       onDragEnd={handleCardDragEnd}
-                      title="Drag to move"
-                      aria-label="Drag to move"
+                      title={t('card.dragTitle')}
+                      aria-label={t('card.dragAria')}
                     >
                       ⋮⋮
                     </span>
                     <div className="task-title">{task.title}</div>
                   </div>
-                  {task.description && <div className="task-desc">{task.description}</div>}
+                  <div className="task-card-body">
+                    {task.description && <div className="task-desc">{task.description}</div>}
+                    <div className="task-card-due">
+                      <span className="task-due-label">{t('card.dueLabel')}</span>
+                      <input
+                        type="date"
+                        value={task.dueDate ?? ''}
+                        onChange={(e) => setDueDate(task, e.target.value || null)}
+                        className="task-due-date-input"
+                        title={t('card.dueTitle')}
+                        aria-label={t('card.dueAria')}
+                      />
+                    </div>
+                  </div>
                   <div className="task-card-footer">
-                    <span className={`task-priority-badge task-priority-${normalizePriority(task.priority).toLowerCase()}`}>
-                      {normalizePriority(task.priority)}
-                    </span>
-                    <input
-                      type="date"
-                      value={task.dueDate ?? ''}
-                      onChange={(e) => setDueDate(task, e.target.value || null)}
-                      className="task-due-date-input"
-                      title="Due date"
-                      aria-label="Due date"
-                    />
                     <select
                       value={normalizePriority(task.priority)}
                       onChange={(e) => {
                         const v = e.target.value
                         setPriority(task, (PRIORITIES.includes(v as TaskPriority) ? v : DEFAULT_PRIORITY) as TaskPriority)
                       }}
-                      className="task-priority-select"
-                      title="Priority (default: Medium)"
+                      className={`task-priority-badge-select task-priority-${normalizePriority(task.priority).toLowerCase()}`}
+                      title={t('card.priorityTitle')}
+                      aria-label={t('card.priorityAria')}
                     >
                       {PRIORITIES.map((p) => (
-                        <option key={p} value={p}>{p === DEFAULT_PRIORITY ? `${p} (default)` : p}</option>
+                        <option key={p} value={p}>
+                          {priorityLabel(p)}
+                          {p === DEFAULT_PRIORITY ? t('priority.defaultSuffix') : ''}
+                        </option>
                       ))}
                     </select>
                     <button
                       type="button"
                       className="btn-delete btn-delete-icon"
                       onClick={() => remove(task.id)}
-                      title="Delete"
-                      aria-label="Delete task"
+                      title={t('card.deleteTitle')}
+                      aria-label={t('card.deleteAria')}
                     >
                       <svg className="icon-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                         <polyline points="3 6 5 6 21 6" />

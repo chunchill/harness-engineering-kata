@@ -57,7 +57,9 @@ class TaskServiceTest {
     @Test
     void update_status() {
         TaskDto created = taskService.create(new TaskCreateRequest("Task", null, null, null));
-        TaskDto updated = taskService.update(created.id(), new TaskUpdateRequest(null, null, TaskStatus.IN_PROGRESS, null, null, null));
+        TaskUpdateRequest req = new TaskUpdateRequest();
+        req.setStatus(TaskStatus.IN_PROGRESS);
+        TaskDto updated = taskService.update(created.id(), req);
         assertThat(updated.status()).isEqualTo(TaskStatus.IN_PROGRESS);
         assertThat(updated.title()).isEqualTo("Task");
     }
@@ -71,7 +73,9 @@ class TaskServiceTest {
 
     @Test
     void update_throws_when_not_found() {
-        assertThatThrownBy(() -> taskService.update(999L, new TaskUpdateRequest("x", null, null, null, null, null)))
+        TaskUpdateRequest req = new TaskUpdateRequest();
+        req.setTitle("x");
+        assertThatThrownBy(() -> taskService.update(999L, req))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not found");
     }
@@ -86,7 +90,9 @@ class TaskServiceTest {
     @Test
     void update_priority_persists() {
         TaskDto created = taskService.create(new TaskCreateRequest("Task", null, TaskPriority.MEDIUM, null));
-        TaskDto updated = taskService.update(created.id(), new TaskUpdateRequest(null, null, null, TaskPriority.LOW, null, null));
+        TaskUpdateRequest req = new TaskUpdateRequest();
+        req.setPriority(TaskPriority.LOW);
+        TaskDto updated = taskService.update(created.id(), req);
         assertThat(updated.priority()).isEqualTo(TaskPriority.LOW);
         assertThat(taskService.findAll().get(0).priority()).isEqualTo(TaskPriority.LOW);
     }
@@ -103,7 +109,19 @@ class TaskServiceTest {
         TaskDto created = taskService.create(new TaskCreateRequest("Task", null, null, "2025-06-15"));
         assertThat(created.dueDate()).isEqualTo("2025-06-15");
 
-        TaskDto updated = taskService.update(created.id(), new TaskUpdateRequest(null, null, null, null, null, true));
+        TaskUpdateRequest clear = new TaskUpdateRequest();
+        clear.setClearDueDate(true);
+        TaskDto updated = taskService.update(created.id(), clear);
         assertThat(updated.dueDate()).isNull();
+    }
+
+    @Test
+    void update_dueDate_when_previously_null() {
+        TaskDto created = taskService.create(new TaskCreateRequest("No due", null, null, null));
+        assertThat(created.dueDate()).isNull();
+        TaskUpdateRequest req = new TaskUpdateRequest();
+        req.setDueDate("2025-09-01");
+        TaskDto updated = taskService.update(created.id(), req);
+        assertThat(updated.dueDate()).isEqualTo("2025-09-01");
     }
 }

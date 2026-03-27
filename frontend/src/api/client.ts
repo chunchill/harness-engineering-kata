@@ -25,9 +25,10 @@ export async function createTask(req: TaskCreateRequest): Promise<Task> {
   })
 }
 
+/** Partial update. Uses POST /tasks/{id}/patch so dev proxies forward the body reliably (PATCH bodies are often dropped). */
 export async function updateTask(id: number, req: TaskUpdateRequest): Promise<Task> {
-  return request<Task>(`/tasks/${id}`, {
-    method: 'PATCH',
+  return request<Task>(`/tasks/${id}/patch`, {
+    method: 'POST',
     body: JSON.stringify(req),
   })
 }
