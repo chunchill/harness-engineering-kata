@@ -3,6 +3,7 @@ import type { Task, TaskPriority, TaskStatus } from '../api/types'
 import * as api from '../api/client'
 import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
+import { AddTaskModal } from './AddTaskModal'
 import './TaskBoard.css'
 
 const PRIORITIES: TaskPriority[] = ['HIGH', 'MEDIUM', 'LOW']
@@ -42,10 +43,13 @@ export function TaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true) // true until first fetch completes
   const [error, setError] = useState<string | null>(null)
-  const [newTitle, setNewTitle] = useState('')
-  const [newDesc, setNewDesc] = useState('')
-  const [newPriority, setNewPriority] = useState<TaskPriority | ''>('')
-  const [newDueDate, setNewDueDate] = useState('')
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [addModalNonce, setAddModalNonce] = useState(0)
+
+  const openAddModal = () => {
+    setAddModalNonce((n) => n + 1)
+    setAddModalOpen(true)
+  }
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
@@ -76,29 +80,6 @@ export function TaskBoard() {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [])
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault()
-    const title = newTitle.trim()
-    if (!title) return
-    const form = e.currentTarget
-    const prioritySelect = form.querySelector('.input-priority') as HTMLSelectElement | null
-    const priorityValue = prioritySelect?.value
-    const priority: TaskPriority =
-      priorityValue && PRIORITIES.includes(priorityValue as TaskPriority)
-        ? (priorityValue as TaskPriority)
-        : DEFAULT_PRIORITY
-    const dueDate = newDueDate.trim() || null
-    api.createTask({ title, description: newDesc.trim() || null, priority, dueDate })
-      .then(() => {
-        setNewTitle('')
-        setNewDesc('')
-        setNewPriority('')
-        setNewDueDate('')
-        reloadTasks()
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-  }
 
   const remove = (id: number) => {
     api.deleteTask(id).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
@@ -164,6 +145,15 @@ export function TaskBoard() {
           <div className="board-header-actions">
             <button
               type="button"
+              className="btn-add-task"
+              onClick={openAddModal}
+              aria-haspopup="dialog"
+              aria-expanded={addModalOpen}
+            >
+              {t('form.addTask')}
+            </button>
+            <button
+              type="button"
               className="btn-theme-toggle"
               onClick={toggleLocale}
               title={locale === 'en' ? t('locale.switchToZh') : t('locale.switchToEn')}
@@ -195,46 +185,13 @@ export function TaskBoard() {
             </button>
           </div>
         </div>
-        <form onSubmit={handleCreate} className="create-form">
-          <input
-            type="text"
-            placeholder={t('form.titlePlaceholder')}
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            className="input-title"
-          />
-          <input
-            type="text"
-            placeholder={t('form.descPlaceholder')}
-            value={newDesc}
-            onChange={(e) => setNewDesc(e.target.value)}
-            className="input-desc"
-          />
-          <select
-            value={newPriority}
-            onChange={(e) => setNewPriority((e.target.value || '') as TaskPriority | '')}
-            className="input-priority"
-            title={t('form.priorityTitle')}
-          >
-            <option value="">{t('form.priorityPlaceholder')}</option>
-            {PRIORITIES.map((p) => (
-              <option key={p} value={p}>{priorityLabel(p)}</option>
-            ))}
-          </select>
-          <label className="create-due-field">
-            <span className="create-due-label">{t('form.dueLabel')}</span>
-            <input
-              type="date"
-              value={newDueDate}
-              onChange={(e) => setNewDueDate(e.target.value)}
-              className="input-due-date"
-              title={t('form.dueTitle')}
-              aria-label={t('form.dueAria')}
-            />
-          </label>
-          <button type="submit" className="btn-create">{t('form.addTask')}</button>
-        </form>
       </header>
+      <AddTaskModal
+        key={addModalNonce}
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onCreated={reloadTasks}
+      />
       <div className="board-columns">
         {columns.map(({ status, label }) => (
           <div
