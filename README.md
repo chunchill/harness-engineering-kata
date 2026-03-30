@@ -8,7 +8,7 @@ Full-stack Task Board built to practice **Harness Engineering**, **Middle Loop**
 
 - **一键本地运行**：在项目根执行 `npm install`（首次）后运行 `npm run dev`，会同时启动后端与前端。后端 http://localhost:8080，前端 http://localhost:5173。
 - **分别启动**：Backend `cd backend && ./gradlew bootRun`（或本机 `gradle bootRun`）；Frontend `cd frontend && npm install && npm run dev`。前端通过 proxy 访问后端 `/api`。
-- **Tests**: Backend `cd backend && ./gradlew test`; frontend `cd frontend && npm run lint && npm run build`. Root: `npm run test` (backend tests + frontend build), `npm run build` (both builds).
+- **Tests**: Backend `cd backend && ./gradlew test`; frontend `cd frontend && npm run test && npm run lint && npm run build`. Root: `npm run test` (backend + frontend tests), `npm run build` (both builds).
 
 ## Structure
 

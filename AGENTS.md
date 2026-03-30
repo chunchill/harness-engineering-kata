@@ -53,8 +53,8 @@
 ## 6. Commands you must run
 
 - **Backend**: From repo root, `./backend/gradlew -p backend test` (or `backend/gradlew test` from backend). Before committing backend changes, ensure tests pass.
-- **Frontend**: From repo root, `npm run build:frontend` or `cd frontend && npm run build`. Lint: `cd frontend && npm run lint`.
-- **Root**: `npm run test` runs backend tests and frontend build; `npm run build` runs both builds.
+- **Frontend**: `cd frontend && npm run test` (Vitest), `npm run lint`, `npm run build`. From repo root: `npm run test:frontend`, `npm run build:frontend`.
+- **Root**: `npm run test` runs backend tests and frontend tests; `npm run build` runs both builds.
 - **OpenSpec**: After editing a change, `openspec validate <change-id> --strict`.
 
 ---

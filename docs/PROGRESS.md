@@ -44,7 +44,7 @@
 
 ## Phase 3：迭代完善 + Bug 修复
 
-- [x] Phase 3.1：功能增强（优先级、卡片拖拽、主题切换、卡片布局优化、任务截止日期已完成并已 archive；**UI 中英文 i18n** 见 OpenSpec `2026-03-27-i18n-zh-en`，实现已完成，**待你验收后** `openspec archive 2026-03-27-i18n-zh-en --yes` 合并进 `openspec/specs/`）
+- [x] Phase 3.1：功能增强（优先级、卡片拖拽、主题切换、卡片布局优化、任务截止日期已完成并已 archive；**添加任务模态框**：OpenSpec `2026-03-29-add-task-modal` 已 archive，`openspec/specs/task-board` 已含「Add task modal」需求，归档目录 `openspec/changes/archive/2026-03-30-2026-03-29-add-task-modal`；**UI 中英文 i18n** 见 OpenSpec `2026-03-27-i18n-zh-en`，实现已完成，**待你验收后** `openspec archive 2026-03-27-i18n-zh-en --yes` 合并进 `openspec/specs/`）
 - [ ] Phase 3.2：故意留 Bug + 用 Harness 修（补测试/规则，再让 Agent 修）
 - [ ] Phase 3.3：可选 Vibe 小实验
 

@@ -7,7 +7,7 @@
     "install:all": "cd frontend && npm install && cd ../backend && ./gradlew build -x test --no-daemon || true",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && ./gradlew test --no-daemon",
-    "test:frontend": "cd frontend && npm run build",
+    "test:frontend": "cd frontend && npm run test",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && ./gradlew build --no-daemon",
     "build:frontend": "cd frontend && npm run build",

@@ -7,7 +7,7 @@
 ## 验收门禁
 
 - 后端：ArchUnit 通过；`./gradlew test` 绿。
-- 前端：`npm run build` 与 `npm run lint` 通过。
+- 前端：`npm run test`（Vitest）、`npm run lint` 与 `npm run build` 通过。
 - 变更：实现前 `openspec validate <id> --strict` 通过；实现后人类验收再 archive。
 
 ## 占位

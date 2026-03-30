@@ -1,5 +1,10 @@
 # React + TypeScript + Vite
 
+## Testing
+
+- `npm run test` — Vitest single run (CI / pre-commit)
+- `npm run test:watch` — Vitest watch mode during development
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

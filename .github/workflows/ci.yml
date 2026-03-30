@@ -60,6 +60,15 @@ jobs:
       - name: Lint frontend
         run: cd frontend && npm run lint
 
+      - name: Test frontend
+        run: |
+          for i in 1 2 3; do
+            (cd frontend && npm run test) && break
+            [ $i -eq 3 ] && exit 1
+            echo "Retry $i/3 in 10s..."
+            sleep 10
+          done
+
       - name: Build frontend
         run: |
           for i in 1 2 3; do

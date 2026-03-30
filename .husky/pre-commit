@@ -7,5 +7,5 @@ if [ -d backend ] && [ -x backend/gradlew ]; then
   (cd backend && ./gradlew test --no-daemon -q) || exit 1
 fi
 if [ -d frontend ] && [ -d frontend/node_modules ]; then
-  (cd frontend && npm run lint) || exit 1
+  (cd frontend && npm run test && npm run lint) || exit 1
 fi
