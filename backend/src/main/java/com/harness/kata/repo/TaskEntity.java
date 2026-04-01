@@ -23,6 +23,9 @@ public class TaskEntity {
     @Column(length = 2048)
     private String description;
 
+    @Column(name = "lane_id", nullable = false)
+    private Long laneId;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false)
@@ -60,6 +63,8 @@ public class TaskEntity {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public Long getLaneId() { return laneId; }
+    public void setLaneId(Long laneId) { this.laneId = laneId; }
     public TaskStatus getStatus() { return status; }
     public void setStatus(TaskStatus status) { this.status = status; }
     public TaskPriority getPriority() { return priority; }

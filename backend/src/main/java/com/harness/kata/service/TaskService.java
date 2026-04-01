@@ -1,5 +1,7 @@
 package com.harness.kata.service;
 
+import com.harness.kata.repo.LaneEntity;
+import com.harness.kata.repo.LaneRepository;
 import com.harness.kata.repo.TaskEntity;
 import com.harness.kata.repo.TaskRepository;
 import com.harness.kata.types.TaskCreateRequest;
@@ -21,9 +23,13 @@ import java.util.stream.Collectors;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final LaneRepository laneRepository;
+    private final LaneService laneService;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, LaneRepository laneRepository, LaneService laneService) {
         this.taskRepository = taskRepository;
+        this.laneRepository = laneRepository;
+        this.laneService = laneService;
     }
 
     @Transactional(readOnly = true)
@@ -38,10 +44,15 @@ public class TaskService {
         if (request == null || request.title() == null || request.title().isBlank()) {
             throw new IllegalArgumentException("title is required");
         }
+        laneService.ensureDefaultsExist();
+        Long laneId = request.laneId() != null ? request.laneId() : firstLaneId();
+        if (laneId == null) throw new IllegalStateException("No lanes exist");
+
         TaskEntity entity = new TaskEntity();
         entity.setTitle(request.title().trim());
         entity.setDescription(request.description() != null ? request.description().trim() : null);
-        entity.setStatus(TaskStatus.TODO);
+        entity.setLaneId(laneId);
+        maybeSyncStatusFromLane(entity);
         entity.setPriority(request.priority() != null ? request.priority() : TaskPriority.MEDIUM);
         entity.setDueDate(parseDueDate(request.dueDate()));
         entity = taskRepository.save(entity);
@@ -60,6 +71,10 @@ public class TaskService {
         }
         if (request.getStatus() != null) {
             entity.setStatus(request.getStatus());
+        }
+        if (request.getLaneId() != null) {
+            entity.setLaneId(request.getLaneId());
+            maybeSyncStatusFromLane(entity);
         }
         if (request.getPriority() != null) {
             entity.setPriority(request.getPriority());
@@ -86,12 +101,32 @@ public class TaskService {
                 e.getId(),
                 e.getTitle(),
                 e.getDescription(),
+                e.getLaneId(),
                 e.getStatus(),
                 Objects.requireNonNullElse(e.getPriority(), TaskPriority.MEDIUM),
                 e.getDueDate() != null ? e.getDueDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : null,
                 e.getCreatedAt(),
                 e.getUpdatedAt()
         );
+    }
+
+    private Long firstLaneId() {
+        return laneRepository.findAllByOrderByPositionAsc().stream()
+                .findFirst()
+                .map(LaneEntity::getId)
+                .orElse(null);
+    }
+
+    /**
+     * Backward compatibility: keep TaskStatus in sync for seeded lanes.
+     * Custom lanes keep the existing status unchanged.
+     */
+    private void maybeSyncStatusFromLane(TaskEntity task) {
+        if (task.getLaneId() == null) return;
+        laneRepository.findById(task.getLaneId()).ifPresent((lane) -> {
+            if (lane.getKey() == null) return;
+            task.setStatus(TaskStatus.valueOf(lane.getKey().name()));
+        });
     }
 
     private LocalDate parseDueDate(String s) {

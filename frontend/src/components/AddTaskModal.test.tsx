@@ -30,6 +30,7 @@ describe('AddTaskModal', () => {
     id: 1,
     title: 'Hello',
     description: null,
+    laneId: 1,
     status: 'TODO',
     priority: 'MEDIUM',
     dueDate: null,

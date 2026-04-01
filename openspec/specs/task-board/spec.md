@@ -5,43 +5,29 @@ TBD - created by archiving change mvp-task-board. Update Purpose after archive.
 ## Requirements
 ### Requirement: Task model
 
-The system SHALL represent a task with: id (unique), title, optional description, status (TODO | IN_PROGRESS | DONE), createdAt, updatedAt.
+Tasks SHALL belong to a lane (by id).
 
-#### Scenario: Create task
+#### Scenario: Create task defaults to first lane
 
-- GIVEN no task with the same id exists
-- WHEN a client POSTs a task with title and optional description
-- THEN the system creates a task with status TODO and returns it with id and timestamps
+- GIVEN lanes exist
+- WHEN a client POSTs a task without specifying a lane
+- THEN the system creates the task in the first lane (by position) and returns it with `laneId`
 
-#### Scenario: List tasks
+#### Scenario: Move task between lanes
 
-- GIVEN zero or more tasks exist
-- WHEN a client GETs /tasks
-- THEN the system returns all tasks (e.g. ordered by updatedAt descending)
-
-#### Scenario: Update task (e.g. move status)
-
-- GIVEN a task exists
-- WHEN a client PATCHes the task with a new status (or title/description)
-- THEN the system updates the task and returns the updated task; updatedAt is refreshed
-
-#### Scenario: Delete task
-
-- GIVEN a task exists
-- WHEN a client DELETEs the task by id
-- THEN the system removes the task and returns 204 or success
+- GIVEN a task exists in lane A and lane B exists
+- WHEN a client updates the task with `laneId = laneB.id`
+- THEN the system updates the task’s laneId and the UI reflects the new column
 
 ### Requirement: Board columns
 
-The system SHALL support at least three logical columns: Todo, In Progress, Done, represented by task status (TODO, IN_PROGRESS, DONE).
+The UI SHALL render columns based on the lane list returned by `GET /lanes`.
 
-- Column header labels SHALL be derived from the lane definitions returned by `GET /lanes` (not hard-coded).
+#### Scenario: Lanes render as columns
 
-#### Scenario: Tasks grouped by column
-
-- GIVEN tasks exist with statuses TODO, IN_PROGRESS, DONE
-- WHEN a client lists tasks (e.g. GET /tasks) or the UI renders the board
-- THEN tasks are grouped or filterable by status so each column shows the correct tasks, and the UI uses `/lanes` for the displayed header labels
+- GIVEN lanes exist
+- WHEN the UI loads
+- THEN it renders one column per lane (ordered by position)
 
 ### Requirement: Task priority
 
@@ -162,4 +148,58 @@ The system SHALL expose lane definitions (for the three default lanes) via an AP
 - GIVEN a lane exists
 - WHEN a client PATCHes `/lanes/{key}` with a new name
 - THEN the lane’s name changes and subsequent GETs to `/lanes` return the updated name
+
+### Requirement: UI locale (界面语言)
+
+The board UI SHALL support at least two display locales: English (`en`) and Chinese (`zh`). All fixed UI chrome (headings, column titles, form labels and placeholders, buttons, theme-toggle affordances, priority labels as shown to the user, and accessible names where applicable) SHALL be rendered in the active locale. User-authored task **title** and **description** SHALL NOT be translated by the application.
+
+The active locale SHALL be switchable from the UI without a full page navigation; changing locale SHALL immediately update visible strings.
+
+The chosen locale SHALL be persisted across page reloads (e.g. `localStorage`). On first visit with no stored preference, the UI SHALL infer an initial locale from the browser’s `navigator.language` (e.g. treat `zh`, `zh-CN`, `zh-TW`, etc. as Chinese; otherwise default to English).
+
+The document root `lang` attribute SHOULD reflect the active locale (e.g. `en` or `zh-CN`) for accessibility.
+
+#### Scenario: Switch locale in the UI
+
+- GIVEN the Task Board UI is loaded in one locale (e.g. English)
+- WHEN the user activates the language / locale control to select the other locale (e.g. Chinese)
+- THEN all fixed UI strings update to that locale immediately, and task titles/descriptions remain unchanged
+
+#### Scenario: Persist locale across reloads
+
+- GIVEN the user has selected a locale using the locale control
+- WHEN the user reloads the page or revisits the Task Board
+- THEN the UI initializes in the previously selected locale
+
+#### Scenario: Infer locale on first visit
+
+- GIVEN no stored locale preference exists for this origin
+- WHEN the user opens the Task Board for the first time
+- THEN the UI initializes in Chinese if the browser language indicates Chinese, otherwise in English
+
+### Requirement: Add lane
+
+The system SHALL allow creating lanes.
+
+#### Scenario: Create lane
+
+- GIVEN the system is running
+- WHEN a client POSTs a new lane name to `/lanes`
+- THEN the system creates a lane and returns it with id and position
+
+### Requirement: Delete lane
+
+The system SHALL support deleting a lane.
+
+#### Rules
+
+- Only lanes with `key = null` (custom lanes) MAY be deleted.
+- The system SHALL NOT allow deleting the last remaining lane.
+- If tasks exist in the deleted lane, those tasks SHALL be reassigned to the first remaining lane (ordered by lane `position`, then `id`).
+
+#### Scenario: Delete lane reassigns tasks
+
+- GIVEN at least two lanes exist and one custom lane has tasks
+- WHEN a client DELETEs `/lanes/{id}` for that custom lane
+- THEN the lane is removed and those tasks now belong to the first remaining lane
 

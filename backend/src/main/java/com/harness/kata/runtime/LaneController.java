@@ -2,7 +2,6 @@ package com.harness.kata.runtime;
 
 import com.harness.kata.service.LaneService;
 import com.harness.kata.types.LaneDto;
-import com.harness.kata.types.LaneKey;
 import com.harness.kata.types.LaneRenameRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,10 +23,33 @@ public class LaneController {
         return laneService.list();
     }
 
-    @PatchMapping("/{key}")
-    public ResponseEntity<LaneDto> rename(@PathVariable LaneKey key, @RequestBody LaneRenameRequest body) {
+    public record LaneCreateRequest(String name) {}
+
+    @PostMapping
+    public ResponseEntity<LaneDto> create(@RequestBody LaneCreateRequest body) {
         try {
-            return ResponseEntity.ok(laneService.rename(key, body != null ? body.name() : null));
+            return ResponseEntity.status(201).body(laneService.create(body != null ? body.name() : null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<LaneDto> rename(@PathVariable Long id, @RequestBody LaneRenameRequest body) {
+        try {
+            return ResponseEntity.ok(laneService.rename(id, body != null ? body.name() : null));
+        } catch (IllegalArgumentException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("not found")) return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        try {
+            laneService.delete(id);
+            return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.contains("not found")) return ResponseEntity.notFound().build();

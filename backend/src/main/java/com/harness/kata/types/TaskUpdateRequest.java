@@ -14,6 +14,7 @@ public class TaskUpdateRequest {
     private TaskPriority priority;
     private String dueDate;
     private Boolean clearDueDate;
+    private Long laneId;
 
     public String getTitle() {
         return title;
@@ -61,5 +62,13 @@ public class TaskUpdateRequest {
 
     public void setClearDueDate(Boolean clearDueDate) {
         this.clearDueDate = clearDueDate;
+    }
+
+    public Long getLaneId() {
+        return laneId;
+    }
+
+    public void setLaneId(Long laneId) {
+        this.laneId = laneId;
     }
 }

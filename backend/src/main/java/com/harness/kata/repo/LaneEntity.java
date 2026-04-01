@@ -10,8 +10,14 @@ import java.time.Instant;
 public class LaneEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * Optional stable key for seeded default lanes. Custom lanes keep this null.
+     */
     @Enumerated(EnumType.STRING)
-    @Column(name = "lane_key", nullable = false, length = 32)
+    @Column(name = "lane_key", length = 32, unique = true)
     private LaneKey key;
 
     @Column(nullable = false, length = 255)
@@ -38,6 +44,8 @@ public class LaneEntity {
         updatedAt = Instant.now();
     }
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public LaneKey getKey() { return key; }
     public void setKey(LaneKey key) { this.key = key; }
     public String getName() { return name; }

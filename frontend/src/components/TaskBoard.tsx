@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import type { Lane, LaneKey, Task, TaskPriority, TaskStatus } from '../api/types'
+import { useState, useEffect, useCallback } from 'react'
+import type { Lane, Task, TaskPriority } from '../api/types'
 import * as api from '../api/client'
 import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
@@ -23,17 +23,8 @@ function normalizePriority(p: TaskPriority | null | undefined): TaskPriority {
   return p && PRIORITIES.includes(p) ? p : DEFAULT_PRIORITY
 }
 
-export function TaskBoard() {
+export function TaskBoard(props: { onLoggedOut: () => void }) {
   const { locale, setLocale, t } = useI18n()
-
-  const defaultColumns = useMemo(
-    (): { key: LaneKey; fallbackLabel: string }[] => [
-      { key: 'TODO', fallbackLabel: t('column.todo') },
-      { key: 'IN_PROGRESS', fallbackLabel: t('column.inProgress') },
-      { key: 'DONE', fallbackLabel: t('column.done') },
-    ],
-    [t],
-  )
 
   const priorityLabel = useCallback(
     (p: TaskPriority) => t(`priority.${p.toLowerCase()}` as MessageKey),
@@ -44,8 +35,11 @@ export function TaskBoard() {
   const [loading, setLoading] = useState(true) // true until first fetch completes
   const [error, setError] = useState<string | null>(null)
   const [lanes, setLanes] = useState<Lane[] | null>(null)
-  const [renamingLaneKey, setRenamingLaneKey] = useState<LaneKey | null>(null)
+  const [creatingLane, setCreatingLane] = useState(false)
+  const [createLaneValue, setCreateLaneValue] = useState('')
+  const [renamingLaneId, setRenamingLaneId] = useState<number | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [deletingLaneId, setDeletingLaneId] = useState<number | null>(null)
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [addModalNonce, setAddModalNonce] = useState(0)
 
@@ -54,7 +48,7 @@ export function TaskBoard() {
     setAddModalOpen(true)
   }
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null)
-  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null)
+  const [dragOverLaneId, setDragOverLaneId] = useState<number | null>(null)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
 
   useEffect(() => {
@@ -66,10 +60,11 @@ export function TaskBoard() {
 
   const toggleLocale = () => setLocale(locale === 'en' ? 'zh' : 'en')
 
-  const reloadTasks = () => {
-    api.listTasks()
-      .then((data) => {
-        setTasks(data)
+  const reloadAll = () => {
+    Promise.all([api.listTasks(), api.listLanes()])
+      .then(([taskData, laneData]) => {
+        setTasks(taskData)
+        setLanes(laneData)
         setError(null)
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
@@ -89,51 +84,52 @@ export function TaskBoard() {
   }, [])
 
   const remove = (id: number) => {
-    api.deleteTask(id).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    api.deleteTask(id).then(reloadAll).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
   const setPriority = (task: Task, priority: TaskPriority) => {
     const value = PRIORITIES.includes(priority) ? priority : DEFAULT_PRIORITY
-    api.updateTask(task.id, { priority: value }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    api.updateTask(task.id, { priority: value }).then(reloadAll).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }
 
   const setDueDate = (task: Task, dueDate: string | null) => {
     if (dueDate) {
-      api.updateTask(task.id, { dueDate }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      api.updateTask(task.id, { dueDate }).then(reloadAll).catch((e) => setError(e instanceof Error ? e.message : String(e)))
     } else {
-      api.updateTask(task.id, { clearDueDate: true }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      api.updateTask(task.id, { clearDueDate: true }).then(reloadAll).catch((e) => setError(e instanceof Error ? e.message : String(e)))
     }
   }
 
-  const byStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status)
+  const byLaneId = (laneId: number) => tasks.filter((t) => t.laneId === laneId)
 
-  const laneNameFor = useCallback(
-    (key: LaneKey, fallback: string) => {
-      const found = lanes?.find((l) => l.key === key)
-      return found?.name ?? fallback
-    },
-    [lanes],
-  )
-
-  const startRenameLane = (key: LaneKey) => {
-    const current = lanes?.find((l) => l.key === key)?.name
-    const fallback = defaultColumns.find((c) => c.key === key)?.fallbackLabel ?? key
-    setRenamingLaneKey(key)
-    setRenameValue(current ?? fallback)
+  const startRenameLane = (lane: Lane) => {
+    setRenamingLaneId(lane.id)
+    setRenameValue(lane.name)
   }
 
   const submitRenameLane = async () => {
-    if (!renamingLaneKey) return
+    if (!renamingLaneId) return
     try {
-      const updated = await api.renameLane(renamingLaneKey, { name: renameValue })
+      const updated = await api.renameLane(renamingLaneId, { name: renameValue })
       setLanes((prev) => {
         if (!prev) return [updated]
-        const idx = prev.findIndex((l) => l.key === updated.key)
+        const idx = prev.findIndex((l) => l.id === updated.id)
         if (idx === -1) return [...prev, updated]
-        return prev.map((l) => (l.key === updated.key ? updated : l))
+        return prev.map((l) => (l.id === updated.id ? updated : l))
       })
-      setRenamingLaneKey(null)
+      setRenamingLaneId(null)
       setRenameValue('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  const submitCreateLane = async () => {
+    try {
+      const created = await api.createLane({ name: createLaneValue })
+      setLanes((prev) => (prev ? [...prev, created].sort((a, b) => a.position - b.position) : [created]))
+      setCreatingLane(false)
+      setCreateLaneValue('')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -142,7 +138,7 @@ export function TaskBoard() {
   const handleCardDragStart = (task: Task, e: React.DragEvent) => {
     setDraggedTaskId(task.id)
     e.dataTransfer.setData('taskId', String(task.id))
-    e.dataTransfer.setData('taskStatus', task.status)
+    e.dataTransfer.setData('laneId', String(task.laneId))
     e.dataTransfer.effectAllowed = 'move'
     const card = (e.target as HTMLElement).closest('.task-card')
     if (card) e.dataTransfer.setDragImage(card as HTMLElement, 0, 0)
@@ -150,27 +146,38 @@ export function TaskBoard() {
 
   const handleCardDragEnd = () => {
     setDraggedTaskId(null)
-    setDragOverStatus(null)
+    setDragOverLaneId(null)
   }
 
-  const handleColumnDragOver = (status: TaskStatus, e: React.DragEvent) => {
+  const handleColumnDragOver = (laneId: number, e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDragOverStatus(status)
+    setDragOverLaneId(laneId)
   }
 
   const handleColumnDragLeave = () => {
-    setDragOverStatus(null)
+    setDragOverLaneId(null)
   }
 
-  const handleColumnDrop = (targetStatus: TaskStatus, e: React.DragEvent) => {
+  const handleColumnDrop = (targetLaneId: number, e: React.DragEvent) => {
     e.preventDefault()
-    setDragOverStatus(null)
+    setDragOverLaneId(null)
     setDraggedTaskId(null)
     const taskId = e.dataTransfer.getData('taskId')
-    const sourceStatus = e.dataTransfer.getData('taskStatus') as TaskStatus
-    if (!taskId || sourceStatus === targetStatus) return
-    api.updateTask(Number(taskId), { status: targetStatus }).then(reloadTasks).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    const sourceLaneId = Number(e.dataTransfer.getData('laneId') || '0')
+    if (!taskId || !targetLaneId || sourceLaneId === targetLaneId) return
+    api.updateTask(Number(taskId), { laneId: targetLaneId }).then(reloadAll).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+  }
+
+  const submitDeleteLane = async () => {
+    if (!deletingLaneId) return
+    try {
+      await api.deleteLane(deletingLaneId)
+      setDeletingLaneId(null)
+      reloadAll()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
   }
 
   if (loading) return <div className="board-loading">{t('board.loading')}</div>
@@ -185,11 +192,25 @@ export function TaskBoard() {
             <button
               type="button"
               className="btn-add-task"
+              onClick={() => api.logout().then(props.onLoggedOut).catch((e) => setError(e instanceof Error ? e.message : String(e)))}
+            >
+              {t('auth.logout')}
+            </button>
+            <button
+              type="button"
+              className="btn-add-task"
               onClick={openAddModal}
               aria-haspopup="dialog"
               aria-expanded={addModalOpen}
             >
               {t('form.addTask')}
+            </button>
+            <button
+              type="button"
+              className="btn-add-task"
+              onClick={() => setCreatingLane(true)}
+            >
+              {t('lane.add')}
             </button>
             <button
               type="button"
@@ -229,31 +250,42 @@ export function TaskBoard() {
         key={addModalNonce}
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        onCreated={reloadTasks}
+        onCreated={reloadAll}
       />
       <div className="board-columns">
-        {defaultColumns.map(({ key, fallbackLabel }) => (
+        {(lanes ?? []).map((lane) => (
           <div
-            key={key}
-            className={`column ${dragOverStatus === key ? 'drop-target' : ''}`}
-            onDragOver={(e) => handleColumnDragOver(key, e)}
+            key={lane.id}
+            className={`column ${dragOverLaneId === lane.id ? 'drop-target' : ''}`}
+            onDragOver={(e) => handleColumnDragOver(lane.id, e)}
             onDragLeave={handleColumnDragLeave}
-            onDrop={(e) => handleColumnDrop(key, e)}
+            onDrop={(e) => handleColumnDrop(lane.id, e)}
           >
             <div className="column-title-row">
-              <h2 className="column-title">{laneNameFor(key, fallbackLabel)}</h2>
-              <button
-                type="button"
-                className="column-rename-btn"
-                onClick={() => startRenameLane(key)}
-                aria-label={t('column.rename') as string}
-                title={t('column.rename') as string}
-              >
-                ✎
-              </button>
+              <h2 className="column-title">{lane.name}</h2>
+              <div className="column-title-actions">
+                <button
+                  type="button"
+                  className="column-rename-btn"
+                  onClick={() => startRenameLane(lane)}
+                  aria-label={t('column.rename') as string}
+                  title={t('column.rename') as string}
+                >
+                  ✎
+                </button>
+                <button
+                  type="button"
+                  className="column-delete-btn"
+                  onClick={() => setDeletingLaneId(lane.id)}
+                  aria-label={t('lane.delete') as string}
+                  title={t('lane.delete') as string}
+                >
+                  🗑
+                </button>
+              </div>
             </div>
             <div className="column-tasks">
-              {byStatus(key).map((task) => (
+              {byLaneId(lane.id).map((task) => (
                 <div
                   key={task.id}
                   className={`task-card ${draggedTaskId === task.id ? 'dragging' : ''}`}
@@ -324,7 +356,29 @@ export function TaskBoard() {
           </div>
         ))}
       </div>
-      {renamingLaneKey && (
+      {creatingLane && (
+        <div className="rename-lane-modal" role="dialog" aria-modal="true" aria-label={t('lane.add') as string}>
+          <div className="rename-lane-panel">
+            <div className="rename-lane-title">{t('lane.add')}</div>
+            <input
+              className="rename-lane-input"
+              value={createLaneValue}
+              onChange={(e) => setCreateLaneValue(e.target.value)}
+              autoFocus
+            />
+            <div className="rename-lane-actions">
+              <button type="button" className="rename-lane-cancel" onClick={() => setCreatingLane(false)}>
+                {t('form.cancel')}
+              </button>
+              <button type="button" className="rename-lane-save" onClick={submitCreateLane}>
+                {t('form.save')}
+              </button>
+            </div>
+          </div>
+          <button type="button" className="rename-lane-backdrop" onClick={() => setCreatingLane(false)} aria-label="Close" />
+        </div>
+      )}
+      {renamingLaneId && (
         <div className="rename-lane-modal" role="dialog" aria-modal="true" aria-label={t('column.rename') as string}>
           <div className="rename-lane-panel">
             <div className="rename-lane-title">{t('column.rename')}</div>
@@ -335,7 +389,7 @@ export function TaskBoard() {
               autoFocus
             />
             <div className="rename-lane-actions">
-              <button type="button" className="rename-lane-cancel" onClick={() => setRenamingLaneKey(null)}>
+              <button type="button" className="rename-lane-cancel" onClick={() => setRenamingLaneId(null)}>
                 {t('form.cancel')}
               </button>
               <button type="button" className="rename-lane-save" onClick={submitRenameLane}>
@@ -343,7 +397,23 @@ export function TaskBoard() {
               </button>
             </div>
           </div>
-          <button type="button" className="rename-lane-backdrop" onClick={() => setRenamingLaneKey(null)} aria-label="Close" />
+          <button type="button" className="rename-lane-backdrop" onClick={() => setRenamingLaneId(null)} aria-label="Close" />
+        </div>
+      )}
+      {deletingLaneId && (
+        <div className="rename-lane-modal" role="dialog" aria-modal="true" aria-label={t('lane.delete') as string}>
+          <div className="rename-lane-panel">
+            <div className="rename-lane-title">{t('lane.deleteConfirm')}</div>
+            <div className="rename-lane-actions">
+              <button type="button" className="rename-lane-cancel" onClick={() => setDeletingLaneId(null)}>
+                {t('form.cancel')}
+              </button>
+              <button type="button" className="rename-lane-save" onClick={submitDeleteLane}>
+                {t('form.save')}
+              </button>
+            </div>
+          </div>
+          <button type="button" className="rename-lane-backdrop" onClick={() => setDeletingLaneId(null)} aria-label="Close" />
         </div>
       )}
     </div>

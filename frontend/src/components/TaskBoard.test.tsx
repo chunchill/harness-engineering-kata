@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '../api/client'
-import type { Task } from '../api/types'
+import type { Lane, Task } from '../api/types'
 import { I18nProvider } from '../i18n/I18nProvider'
 import { TaskBoard } from './TaskBoard'
 
@@ -10,15 +10,23 @@ vi.mock('../api/client')
 
 describe('TaskBoard', () => {
   let tasks: Task[] = []
+  let lanes: Lane[] = []
 
   beforeEach(() => {
     tasks = []
+    lanes = [
+      { id: 1, key: 'TODO', name: 'Todo', position: 0, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+      { id: 2, key: 'IN_PROGRESS', name: 'In Progress', position: 1, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+      { id: 3, key: 'DONE', name: 'Done', position: 2, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+    ]
     vi.mocked(api.listTasks).mockImplementation(() => Promise.resolve([...tasks]))
+    vi.mocked(api.listLanes).mockImplementation(() => Promise.resolve([...lanes]))
     vi.mocked(api.createTask).mockImplementation(async (req) => {
       const task: Task = {
         id: tasks.length + 1,
         title: req.title,
         description: req.description ?? null,
+        laneId: req.laneId ?? 1,
         status: 'TODO',
         priority: req.priority ?? 'MEDIUM',
         dueDate: req.dueDate ?? null,
@@ -38,6 +46,7 @@ describe('TaskBoard', () => {
           patch.description !== undefined ? patch.description : t.description,
         dueDate: patch.dueDate !== undefined ? patch.dueDate : t.dueDate,
         priority: patch.priority ?? t.priority,
+        laneId: patch.laneId ?? t.laneId,
         status: patch.status ?? t.status,
         updatedAt: '2026-01-02T00:00:00Z',
       }
@@ -47,6 +56,11 @@ describe('TaskBoard', () => {
     vi.mocked(api.deleteTask).mockImplementation(async (id) => {
       tasks = tasks.filter((x) => x.id !== id)
     })
+
+    vi.mocked(api.me).mockImplementation(async () => {
+      throw new Error('not logged in')
+    })
+    vi.mocked(api.logout).mockImplementation(async () => {})
   })
 
   it('shows loading then board with add-task control', async () => {

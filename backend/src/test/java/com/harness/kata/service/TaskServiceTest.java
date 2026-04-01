@@ -1,6 +1,7 @@
 package com.harness.kata.service;
 
 import com.harness.kata.repo.TaskRepository;
+import com.harness.kata.repo.LaneRepository;
 import com.harness.kata.types.TaskCreateRequest;
 import com.harness.kata.types.TaskDto;
 import com.harness.kata.types.TaskPriority;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
-@Import(TaskService.class)
+@Import({TaskService.class, LaneService.class})
 @ActiveProfiles("test")
 class TaskServiceTest {
 
@@ -26,14 +27,18 @@ class TaskServiceTest {
     TaskService taskService;
 
     @Autowired
+    LaneRepository laneRepository;
+
+    @Autowired
     TaskRepository taskRepository;
 
     @Test
     void create_and_findAll() {
-        TaskDto created = taskService.create(new TaskCreateRequest("First task", "desc", null, null));
+        TaskDto created = taskService.create(new TaskCreateRequest("First task", "desc", null, null, null));
         assertThat(created.id()).isNotNull();
         assertThat(created.title()).isEqualTo("First task");
         assertThat(created.description()).isEqualTo("desc");
+        assertThat(created.laneId()).isNotNull();
         assertThat(created.status()).isEqualTo(TaskStatus.TODO);
         assertThat(created.priority()).isEqualTo(TaskPriority.MEDIUM);
         assertThat(created.dueDate()).isNull();
@@ -47,16 +52,16 @@ class TaskServiceTest {
 
     @Test
     void create_rejects_blank_title() {
-        assertThatThrownBy(() -> taskService.create(new TaskCreateRequest("", "x", null, null)))
+        assertThatThrownBy(() -> taskService.create(new TaskCreateRequest("", "x", null, null, null)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("title is required");
-        assertThatThrownBy(() -> taskService.create(new TaskCreateRequest(null, "x", null, null)))
+        assertThatThrownBy(() -> taskService.create(new TaskCreateRequest(null, "x", null, null, null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void update_status() {
-        TaskDto created = taskService.create(new TaskCreateRequest("Task", null, null, null));
+        TaskDto created = taskService.create(new TaskCreateRequest("Task", null, null, null, null));
         TaskUpdateRequest req = new TaskUpdateRequest();
         req.setStatus(TaskStatus.IN_PROGRESS);
         TaskDto updated = taskService.update(created.id(), req);
@@ -66,7 +71,7 @@ class TaskServiceTest {
 
     @Test
     void delete_removes_task() {
-        TaskDto created = taskService.create(new TaskCreateRequest("To delete", null, null, null));
+        TaskDto created = taskService.create(new TaskCreateRequest("To delete", null, null, null, null));
         taskService.delete(created.id());
         assertThat(taskService.findAll()).isEmpty();
     }
@@ -82,14 +87,14 @@ class TaskServiceTest {
 
     @Test
     void create_with_priority_returns_priority() {
-        TaskDto created = taskService.create(new TaskCreateRequest("High priority", null, TaskPriority.HIGH, null));
+        TaskDto created = taskService.create(new TaskCreateRequest("High priority", null, TaskPriority.HIGH, null, null));
         assertThat(created.priority()).isEqualTo(TaskPriority.HIGH);
         assertThat(created.title()).isEqualTo("High priority");
     }
 
     @Test
     void update_priority_persists() {
-        TaskDto created = taskService.create(new TaskCreateRequest("Task", null, TaskPriority.MEDIUM, null));
+        TaskDto created = taskService.create(new TaskCreateRequest("Task", null, TaskPriority.MEDIUM, null, null));
         TaskUpdateRequest req = new TaskUpdateRequest();
         req.setPriority(TaskPriority.LOW);
         TaskDto updated = taskService.update(created.id(), req);
@@ -99,14 +104,14 @@ class TaskServiceTest {
 
     @Test
     void create_with_dueDate_returns_dueDate() {
-        TaskDto created = taskService.create(new TaskCreateRequest("With due", null, null, "2025-12-31"));
+        TaskDto created = taskService.create(new TaskCreateRequest("With due", null, null, "2025-12-31", null));
         assertThat(created.dueDate()).isEqualTo("2025-12-31");
         assertThat(created.title()).isEqualTo("With due");
     }
 
     @Test
     void update_dueDate_set_and_clear() {
-        TaskDto created = taskService.create(new TaskCreateRequest("Task", null, null, "2025-06-15"));
+        TaskDto created = taskService.create(new TaskCreateRequest("Task", null, null, "2025-06-15", null));
         assertThat(created.dueDate()).isEqualTo("2025-06-15");
 
         TaskUpdateRequest clear = new TaskUpdateRequest();
@@ -117,7 +122,7 @@ class TaskServiceTest {
 
     @Test
     void update_dueDate_when_previously_null() {
-        TaskDto created = taskService.create(new TaskCreateRequest("No due", null, null, null));
+        TaskDto created = taskService.create(new TaskCreateRequest("No due", null, null, null, null));
         assertThat(created.dueDate()).isNull();
         TaskUpdateRequest req = new TaskUpdateRequest();
         req.setDueDate("2025-09-01");

@@ -2,6 +2,8 @@ package com.harness.kata.service;
 
 import com.harness.kata.repo.LaneEntity;
 import com.harness.kata.repo.LaneRepository;
+import com.harness.kata.repo.TaskEntity;
+import com.harness.kata.repo.TaskRepository;
 import com.harness.kata.types.LaneDto;
 import com.harness.kata.types.LaneKey;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,9 @@ class LaneServiceTest {
 
     @Autowired
     LaneRepository laneRepository;
+
+    @Autowired
+    TaskRepository taskRepository;
 
     @Test
     void list_orders_by_position() {
@@ -52,17 +57,62 @@ class LaneServiceTest {
         e.setKey(LaneKey.IN_PROGRESS);
         e.setName("In Progress");
         e.setPosition(1);
-        laneRepository.save(e);
+        e = laneRepository.save(e);
 
-        LaneDto updated = laneService.rename(LaneKey.IN_PROGRESS, "Working");
+        LaneDto updated = laneService.rename(e.getId(), "Working");
         assertThat(updated.name()).isEqualTo("Working");
     }
 
     @Test
     void rename_rejects_blank_name() {
-        assertThatThrownBy(() -> laneService.rename(LaneKey.TODO, " "))
+        LaneEntity e = new LaneEntity();
+        e.setKey(LaneKey.TODO);
+        e.setName("Todo");
+        e.setPosition(0);
+        e = laneRepository.save(e);
+        Long id = e.getId();
+
+        assertThatThrownBy(() -> laneService.rename(id, " "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("name is required");
+    }
+
+    @Test
+    void delete_rejects_default_lane() {
+        LaneEntity e = new LaneEntity();
+        e.setKey(LaneKey.TODO);
+        e.setName("Todo");
+        e.setPosition(0);
+        e = laneRepository.save(e);
+        Long id = e.getId();
+
+        assertThatThrownBy(() -> laneService.delete(id))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot delete default lane");
+    }
+
+    @Test
+    void delete_reassigns_tasks_to_first_remaining_lane() {
+        LaneEntity a = new LaneEntity();
+        a.setName("A");
+        a.setPosition(10);
+        a = laneRepository.save(a);
+
+        LaneEntity b = new LaneEntity();
+        b.setName("B");
+        b.setPosition(0);
+        b = laneRepository.save(b);
+
+        TaskEntity t = new TaskEntity();
+        t.setTitle("T1");
+        t.setLaneId(a.getId());
+        taskRepository.save(t);
+
+        laneService.delete(a.getId());
+
+        assertThat(laneRepository.findById(a.getId())).isEmpty();
+        TaskEntity out = taskRepository.findAll().get(0);
+        assertThat(out.getLaneId()).isEqualTo(b.getId());
     }
 }
 

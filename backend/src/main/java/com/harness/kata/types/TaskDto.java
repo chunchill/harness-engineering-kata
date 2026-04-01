@@ -9,6 +9,8 @@ public record TaskDto(
     Long id,
     String title,
     String description,
+    @JsonProperty("laneId")
+    Long laneId,
     TaskStatus status,
     TaskPriority priority,
     @JsonProperty("dueDate")
