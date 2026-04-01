@@ -45,6 +45,33 @@
 
 ---
 
+## 2.1 下一阶段实验：全平台容器化部署（聊天驱动）+ MySQL 容器化
+
+> 目标：把“运行与部署”也变成可被 Agent 执行与被 CI 验证的 Harness；人类只用聊天表达意图与验收标准。
+
+### 范围（What）
+
+- **容器化**：Frontend、Backend、MySQL 全部可通过容器启动（推荐 `docker compose` 一键拉起）。
+- **数据库**：开发与本地验收优先使用 **MySQL 容器**；保留 H2 仅用于快速单测/本地临时模式（是否保留以变更 spec 为准）。
+- **部署产物**（由 Agent 产出并随 repo 版本控制）：
+  - Dockerfile / compose / 环境变量模板（`.env.example`）与最小文档
+  - 数据库 schema 初始化与迁移策略（例如 Flyway / Liquibase 二选一）
+  - 可重复的启动/停止/重置脚本与故障排查指引
+
+### 约束（Constraints / Harness）
+
+- **必须可复现**：新同学从干净环境开始，只需 `docker compose up` 即可运行并访问 UI。
+- **端口与网络**：compose 内部服务发现稳定；对外暴露端口清晰（例如 UI、API、DB）。
+- **可验证**：CI 至少校验“容器镜像可构建”与“compose 配置可启动的最小健康检查”（门禁可逐步加严）。
+
+### 验收（Acceptance）
+
+- `docker compose up` 后：
+  - MySQL 可用（healthcheck 或连接验证）
+  - Backend 可连 MySQL 并对外提供 API
+  - Frontend 可访问并能完成最基本的任务 CRUD
+- `docker compose down -v` 后可彻底清理数据与容器，重复启动结果一致。
+
 ## 三、OpenAI 核心经验：人类只做 Middle Loop
 
 ### 3.1 人类专属任务清单

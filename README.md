@@ -6,7 +6,8 @@ Full-stack Task Board built to practice **Harness Engineering**, **Middle Loop**
 
 ## Quick start
 
-- **一键本地运行**：在项目根执行 `npm install`（首次）后运行 `npm run dev`，会同时启动后端与前端。后端 http://localhost:8080，前端 http://localhost:5173。
+- **一键本地运行**：在项目根执行 `npm install`（首次）后运行 `npm run dev`，会同时启动后端与前端。后端 http://localhost:8080，前端 http://localhost:5173（后端默认 H2 内存库）。
+- **Docker 全栈（MySQL + API + 前端）**：`docker compose up --build`；端口与重置说明见 [docs/CONTAINER-COMPOSE.md](docs/CONTAINER-COMPOSE.md)。
 - **分别启动**：Backend `cd backend && ./gradlew bootRun`（或本机 `gradle bootRun`）；Frontend `cd frontend && npm install && npm run dev`。前端通过 proxy 访问后端 `/api`。
 - **Tests**: Backend `cd backend && ./gradlew test`; frontend `cd frontend && npm run test && npm run lint && npm run build`. Root: `npm run test` (backend + frontend tests), `npm run build` (both builds).
 
@@ -28,5 +29,5 @@ Full-stack Task Board built to practice **Harness Engineering**, **Middle Loop**
 
 ## CI
 
-- **.github/workflows/ci.yml** — Backend tests + build, frontend lint + build, doc structure check.
+- **.github/workflows/ci.yml** — Backend tests + build, frontend lint + build, doc structure check, Docker Compose build + smoke (`--wait`).
 - **.github/workflows/doc-lint.yml** — Ensures required docs and `openspec/` structure exist.

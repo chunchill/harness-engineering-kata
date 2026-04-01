@@ -56,6 +56,12 @@
 - [ ] Phase 4.2：架构约束检查（ArchUnit 维护/扩展）
 - [ ] Phase 4.3：doc-gardening / code-gc（扫描与修复）
 - [ ] Phase 4.4：README 与入口（Phase 1 时已有一版；此处可再完善安装、test、CI、docs 说明）
+- [ ] Phase 4.5：容器化部署闭环（Docker/Compose + Chat-driven deploy + MySQL 容器化）— **实现已在仓库；待你验收后** `openspec archive 2026-03-31-containerize-mysql --yes` 并入 `openspec/specs/`
+  - [x] 4.5.1：新增 MySQL 容器（healthcheck、持久化卷、初始化/迁移机制）
+  - [x] 4.5.2：后端切换到 MySQL（compose 用 profile `mysql` + Flyway；本地 `npm run dev` 仍为 H2；单测 H2）
+  - [x] 4.5.3：前端/后端容器化（多阶段 Dockerfile）
+  - [x] 4.5.4：`docker compose up` 一键拉起（端口见 `.env.example` 与 `docs/CONTAINER-COMPOSE.md`）
+  - [x] 4.5.5：CI 增加容器化门禁（compose build + `--wait` + HTTP smoke）
 
 ---
 

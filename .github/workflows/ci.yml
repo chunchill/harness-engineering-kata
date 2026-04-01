@@ -78,6 +78,30 @@ jobs:
             sleep 10
           done
 
+  docker-compose:
+    name: Docker Compose smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose build and start (wait for health)
+        run: docker compose up -d --build --wait
+
+      - name: Smoke — API health and tasks
+        run: |
+          curl -sfS "http://127.0.0.1:8080/health" | grep -q UP
+          curl -sfS "http://127.0.0.1:8080/tasks" | grep -q '\['
+
+      - name: Smoke — frontend and proxied API
+        run: |
+          curl -sfS "http://127.0.0.1:3000/" | grep -q html
+          curl -sfS "http://127.0.0.1:3000/api/tasks" | grep -q '\['
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
   doc-lint:
     name: Doc structure check
     runs-on: ubuntu-latest

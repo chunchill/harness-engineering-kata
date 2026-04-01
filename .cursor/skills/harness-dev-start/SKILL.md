@@ -2,8 +2,9 @@
 name: harness-dev-start
 description: >-
   Starts the Harness Engineering Kata full-stack app (Spring Boot + Vite) from
-  repo root. Use when the user asks to 启动应用, 拉起应用, run or start the app
-  locally, start dev servers, or bring up frontend and backend together.
+  repo root (local dev). Use when the user asks to 启动应用, 拉起应用, run or
+  start the app locally, start dev servers, or bring up frontend and backend
+  together. This workflow uses **H2** by default and does **not** use Docker.
 ---
 
 # Harness dev: start full stack
@@ -11,6 +12,8 @@ description: >-
 ## Goal
 
 Run **backend** (Spring Boot, port **8080**) and **frontend** (Vite, default **5173**) together. Authoritative commands also appear in [README.md](../../../README.md) and [AGENTS.md](../../../AGENTS.md).
+
+If the user asks for **容器化部署应用 / Docker / Compose**, use the separate skill `harness-container-deploy` instead.
 
 ## Default workflow (agent)
 

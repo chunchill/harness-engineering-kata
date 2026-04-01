@@ -3,6 +3,9 @@ package com.harness.kata.repo;
 import com.harness.kata.types.TaskPriority;
 import com.harness.kata.types.TaskStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -21,10 +24,12 @@ public class TaskEntity {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false)
     private TaskStatus status = TaskStatus.TODO;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false)
     private TaskPriority priority = TaskPriority.MEDIUM;
 
