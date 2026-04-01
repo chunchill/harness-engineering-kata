@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import type { Task, TaskPriority, TaskStatus } from '../api/types'
+import type { Lane, LaneKey, Task, TaskPriority, TaskStatus } from '../api/types'
 import * as api from '../api/client'
 import { useI18n } from '../i18n/useI18n'
 import type { MessageKey } from '../i18n/messages'
@@ -26,11 +26,11 @@ function normalizePriority(p: TaskPriority | null | undefined): TaskPriority {
 export function TaskBoard() {
   const { locale, setLocale, t } = useI18n()
 
-  const columns = useMemo(
-    (): { status: TaskStatus; label: string }[] => [
-      { status: 'TODO', label: t('column.todo') },
-      { status: 'IN_PROGRESS', label: t('column.inProgress') },
-      { status: 'DONE', label: t('column.done') },
+  const defaultColumns = useMemo(
+    (): { key: LaneKey; fallbackLabel: string }[] => [
+      { key: 'TODO', fallbackLabel: t('column.todo') },
+      { key: 'IN_PROGRESS', fallbackLabel: t('column.inProgress') },
+      { key: 'DONE', fallbackLabel: t('column.done') },
     ],
     [t],
   )
@@ -43,6 +43,9 @@ export function TaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true) // true until first fetch completes
   const [error, setError] = useState<string | null>(null)
+  const [lanes, setLanes] = useState<Lane[] | null>(null)
+  const [renamingLaneKey, setRenamingLaneKey] = useState<LaneKey | null>(null)
+  const [renameValue, setRenameValue] = useState('')
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [addModalNonce, setAddModalNonce] = useState(0)
 
@@ -74,8 +77,12 @@ export function TaskBoard() {
 
   useEffect(() => {
     let cancelled = false
-    api.listTasks()
-      .then((data) => { if (!cancelled) setTasks(data) })
+    Promise.all([api.listTasks(), api.listLanes()])
+      .then(([taskData, laneData]) => {
+        if (cancelled) return
+        setTasks(taskData)
+        setLanes(laneData)
+      })
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -99,6 +106,38 @@ export function TaskBoard() {
   }
 
   const byStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status)
+
+  const laneNameFor = useCallback(
+    (key: LaneKey, fallback: string) => {
+      const found = lanes?.find((l) => l.key === key)
+      return found?.name ?? fallback
+    },
+    [lanes],
+  )
+
+  const startRenameLane = (key: LaneKey) => {
+    const current = lanes?.find((l) => l.key === key)?.name
+    const fallback = defaultColumns.find((c) => c.key === key)?.fallbackLabel ?? key
+    setRenamingLaneKey(key)
+    setRenameValue(current ?? fallback)
+  }
+
+  const submitRenameLane = async () => {
+    if (!renamingLaneKey) return
+    try {
+      const updated = await api.renameLane(renamingLaneKey, { name: renameValue })
+      setLanes((prev) => {
+        if (!prev) return [updated]
+        const idx = prev.findIndex((l) => l.key === updated.key)
+        if (idx === -1) return [...prev, updated]
+        return prev.map((l) => (l.key === updated.key ? updated : l))
+      })
+      setRenamingLaneKey(null)
+      setRenameValue('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   const handleCardDragStart = (task: Task, e: React.DragEvent) => {
     setDraggedTaskId(task.id)
@@ -193,17 +232,28 @@ export function TaskBoard() {
         onCreated={reloadTasks}
       />
       <div className="board-columns">
-        {columns.map(({ status, label }) => (
+        {defaultColumns.map(({ key, fallbackLabel }) => (
           <div
-            key={status}
-            className={`column ${dragOverStatus === status ? 'drop-target' : ''}`}
-            onDragOver={(e) => handleColumnDragOver(status, e)}
+            key={key}
+            className={`column ${dragOverStatus === key ? 'drop-target' : ''}`}
+            onDragOver={(e) => handleColumnDragOver(key, e)}
             onDragLeave={handleColumnDragLeave}
-            onDrop={(e) => handleColumnDrop(status, e)}
+            onDrop={(e) => handleColumnDrop(key, e)}
           >
-            <h2 className="column-title">{label}</h2>
+            <div className="column-title-row">
+              <h2 className="column-title">{laneNameFor(key, fallbackLabel)}</h2>
+              <button
+                type="button"
+                className="column-rename-btn"
+                onClick={() => startRenameLane(key)}
+                aria-label={t('column.rename') as string}
+                title={t('column.rename') as string}
+              >
+                ✎
+              </button>
+            </div>
             <div className="column-tasks">
-              {byStatus(status).map((task) => (
+              {byStatus(key).map((task) => (
                 <div
                   key={task.id}
                   className={`task-card ${draggedTaskId === task.id ? 'dragging' : ''}`}
@@ -274,6 +324,28 @@ export function TaskBoard() {
           </div>
         ))}
       </div>
+      {renamingLaneKey && (
+        <div className="rename-lane-modal" role="dialog" aria-modal="true" aria-label={t('column.rename') as string}>
+          <div className="rename-lane-panel">
+            <div className="rename-lane-title">{t('column.rename')}</div>
+            <input
+              className="rename-lane-input"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              autoFocus
+            />
+            <div className="rename-lane-actions">
+              <button type="button" className="rename-lane-cancel" onClick={() => setRenamingLaneKey(null)}>
+                {t('form.cancel')}
+              </button>
+              <button type="button" className="rename-lane-save" onClick={submitRenameLane}>
+                {t('form.save')}
+              </button>
+            </div>
+          </div>
+          <button type="button" className="rename-lane-backdrop" onClick={() => setRenamingLaneKey(null)} aria-label="Close" />
+        </div>
+      )}
     </div>
   )
 }

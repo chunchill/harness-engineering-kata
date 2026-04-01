@@ -2,6 +2,20 @@ export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
 
 export type TaskPriority = 'HIGH' | 'MEDIUM' | 'LOW'
 
+export type LaneKey = TaskStatus
+
+export interface Lane {
+  key: LaneKey
+  name: string
+  position: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LaneRenameRequest {
+  name: string
+}
+
 export interface Task {
   id: number
   title: string

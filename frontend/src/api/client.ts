@@ -1,4 +1,4 @@
-import type { Task, TaskCreateRequest, TaskUpdateRequest } from './types'
+import type { Lane, LaneKey, LaneRenameRequest, Task, TaskCreateRequest, TaskUpdateRequest } from './types'
 
 const BASE = '/api'
 
@@ -16,6 +16,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export async function listTasks(): Promise<Task[]> {
   return request<Task[]>('/tasks')
+}
+
+export async function listLanes(): Promise<Lane[]> {
+  return request<Lane[]>('/lanes')
+}
+
+export async function renameLane(key: LaneKey, req: LaneRenameRequest): Promise<Lane> {
+  return request<Lane>(`/lanes/${key}`, {
+    method: 'PATCH',
+    body: JSON.stringify(req),
+  })
 }
 
 export async function createTask(req: TaskCreateRequest): Promise<Task> {
