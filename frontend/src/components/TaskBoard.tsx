@@ -278,7 +278,6 @@ export function TaskBoard(props: { onLoggedOut: () => void }) {
                   className="column-delete-btn"
                   onClick={() => setDeletingLaneId(lane.id)}
                   aria-label={t('lane.delete') as string}
-                  title={t('lane.delete') as string}
                 >
                   🗑
                 </button>
@@ -339,7 +338,6 @@ export function TaskBoard(props: { onLoggedOut: () => void }) {
                       type="button"
                       className="btn-delete btn-delete-icon"
                       onClick={() => remove(task.id)}
-                      title={t('card.deleteTitle')}
                       aria-label={t('card.deleteAria')}
                     >
                       <svg className="icon-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

@@ -66,7 +66,7 @@ describe('TaskBoard', () => {
   it('shows loading then board with add-task control', async () => {
     render(
       <I18nProvider>
-        <TaskBoard />
+        <TaskBoard onLoggedOut={() => {}} />
       </I18nProvider>,
     )
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
@@ -75,13 +75,15 @@ describe('TaskBoard', () => {
     })
     expect(screen.getByRole('heading', { name: /task board/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /add task/i })).toBeInTheDocument()
+    const laneDeleteButton = screen.getAllByRole('button', { name: /delete lane/i })[0]
+    expect(laneDeleteButton).not.toHaveAttribute('title')
   })
 
   it('creates a task through the modal and lists it', async () => {
     const user = userEvent.setup()
     render(
       <I18nProvider>
-        <TaskBoard />
+        <TaskBoard onLoggedOut={() => {}} />
       </I18nProvider>,
     )
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument())
@@ -95,6 +97,8 @@ describe('TaskBoard', () => {
     await waitFor(() => {
       expect(screen.getByText('Buy milk')).toBeInTheDocument()
     })
+    const taskDeleteButton = screen.getByRole('button', { name: /delete task/i })
+    expect(taskDeleteButton).not.toHaveAttribute('title')
     expect(api.createTask).toHaveBeenCalled()
   })
 })
